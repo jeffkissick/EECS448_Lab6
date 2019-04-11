@@ -8,38 +8,50 @@
    <link
      rel="stylesheet"    href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
 integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
-     crossorigin="anonymous"
-   />
- </head>
- <body>
+     crossorigin="anonymous">
 
-   <div class="jumbotron">
+ </head>
+ <body style="background-color: darkgray">
+
+   <!-- <div class="jumbotron">
   <h1 class="display-4">Hello, world!</h1>
   <p class="lead">This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>
   <hr class="my-4">
   <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
   <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a>
-</div>
+</div> -->
 
-<div class="text-center">
+
+<br><br><br><br>
+<!-- <div class="text-center">
   <div class="spinner-border" style="width: 20rem; height: 3rem;" role="status">
     <span class="sr-only"></span>
     <p>Bootstrap is fun and useful!</p>
   </div>
-</div>
+</div> -->
 
+<!--  Image source: Yuka Honzawa, drawn specifically for this excersize!  -->
+<div class="media">
+    <img src="bus.PNG" class="mr-3" alt="..." style="height:214px; width: 300px"> 
+    <div class="media-body"><br><br><br><br>
+      <h5 class="mt-0">Lawrence Bus Stop Central</h5>
+      Everything you ever needed to know about Lawrence bus stops and then some.
+    </div>
+  </div>
+
+<br><br><br><br>
 <div class="container">
-   <div id="app">
-     Message: {{ message }}
-   </div>
-</div>
-
-<div id="app1">
-  <ol>
-    <li v-for="todo in todos" :key="todo.id">
-      {{ todo.text }}
-    </li>
-  </ol>
+  <div id="app1">
+    <p><u>Input the number of Stops here </u></p>
+      <input v-model.number="numStops" type="number" style="position:sticky"> <br><br>
+      <div v-for="stop in filteredStops" :key="stop.id" class="card" style="width:50rem">
+        <div class="card-body">
+          <h5 class="card-title">{{ stop.name }}</h5>
+          <p class="card-text">{{ stop.description }}</p>
+          <p class="card-text">{{ stop.findDistance }} Metres</p>
+        </div>
+      </div>
+  </div>
 </div>
 
    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -59,26 +71,75 @@ integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw
 <!-- development version, includes helpful console warnings -->
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 
-<script>const app = new Vue({
-  el: '#app',
-  data: {
-    message: 'Hello Vue!'
-  }
-})
-</script>
-
 <script>
-var app1 = new Vue({
+let app1 = new Vue({
   el: '#app1',
   data: {
-    todos: [
-      { text: 'Figure out what I am doing' },
-      { text: 'Do this Lab' },
-      { text: '???' },
-      { text: 'Profit'}
-    ]
+    stops: [],
+    numStops: 10,
+    lat: 0,
+    lon: 0
+  },
+
+  computed: {
+
+    // a computed getter
+    filteredStops: function () {
+      this.stops.forEach(stop=>{stop.findDistance = this.findDistance(stop.lat,stop.lon)})
+      this.stops.sort((stop1,stop2)=>{return(stop1.findDistance - stop2.findDistance)})
+      return this.stops.slice(0, this.numStops);
+      }
+
+    },
+
+  methods: {
+    watchPosition: function(){
+      navigator.geolocation.getCurrentPosition(function(position) {
+        app1.lat = position.coords.latitude;
+        app1.lon = position.coords.longitude;
+        });
+    },
+
+    /* SOURCE: https://www.movable-type.co.uk/scripts/latlong.html ... notice that I eliminated the var usage.
+       Apparently toRadians() isn't a thing? so I made my own thing for that too. using 
+       https://www.w3resource.com/javascript-exercises/javascript-math-exercise-33.php for reference.
+       I didn't remember the formula for degrees to radians. */
+    
+    findDistance: function(latPass,lonPass){
+      let R = 6371e3; // metres
+      let φ1 = (this.lat) * (Math.PI/180);
+      let φ2 = (latPass) * (Math.PI/180);
+      let Δφ = (this.lat-latPass) * (Math.PI/180);
+      let Δλ = (this.lon-lonPass) * (Math.PI/180)
+
+      let a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+      let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+      let d = R * c;
+
+      return d;
+    }
+  },
+  beforeMount()
+  {
+    this.watchPosition();
+  },
+
+  mounted: function(){
+    fetch('https://utils.pauliankline.com/stops.json')
+      .then(function(response) {
+        return response.json();
+    })
+      .then(function(myJson) {
+        app1.stops = myJson;
+    })
+
   }
 })
+
+
 </script>
 
 </body>
